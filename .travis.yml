@@ -1,0 +1,25 @@
+language: python
+
+# execute lint and py38 as separate CI processes
+matrix:
+  include:
+    - python: 3.8
+      dist: xenial
+      env: TOXENV=py38
+    - python: 3.8
+      dist: xenial
+      env: TOXENV=lint
+
+# install tox
+install:
+  - sudo apt-get update
+  - pip install --upgrade pip
+  - pip install tox
+  - pip install codecov tox
+  - sudo apt-get install mosquitto
+# command to run tests
+script:
+  - tox
+# Upload coverage report to 'Codecov'
+after_script:
+  - codecov --token=  # todo: set token
