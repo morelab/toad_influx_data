@@ -4,7 +4,7 @@ from typing import Dict, List, Any, Callable, Coroutine, Optional
 
 from gmqtt import Client as MQTTClient
 
-from toad_influx_data import logger
+from toad_influx_data.utils import logger
 
 MQTTTopic = str
 MQTTPayload = bytes

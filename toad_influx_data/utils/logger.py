@@ -1,5 +1,5 @@
 import logging
-from toad_influx_data import config
+from toad_influx_data.utils import config
 
 # define VERBOSE only if it wasn't defined before importing this file
 VERBOSE = config.LOGGER_VERBOSE

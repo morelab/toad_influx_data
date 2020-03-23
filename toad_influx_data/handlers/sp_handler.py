@@ -4,7 +4,7 @@ import json
 from typing import List
 from senml.senml import SenMLDocument, SenMLMeasurement
 
-from toad_influx_data.handler.handler_abc import IParser, InfluxPoint
+from toad_influx_data.handlers.handler_abc import IParser, InfluxPoint
 
 
 class SmartPlugParser(IParser):
