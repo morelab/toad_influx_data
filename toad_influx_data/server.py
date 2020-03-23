@@ -1,13 +1,19 @@
+import json
 import asyncio
 import uuid
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from aioinflux import InfluxDBClient
 
 from toad_influx_data import config
 from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
-from toad_influx_data.protocol import REST_PAYLOAD_FIELD, REST_SUBTOPICS_FIELD
-from toad_influx_data.protocol import SP_DATA_SOURCE_TOPIC, INFLUX_SP_DATABASE
+from toad_influx_data.handler.sp_handler import SmartPlugParser
+from toad_influx_data.handler.handler_abc import IParser
+import toad_influx_data.protocol as prot
+
+DATA_HANDLERS: List[IParser] = [
+    SmartPlugParser(),
+]
 
 
 class DataServer:
@@ -28,7 +34,7 @@ class DataServer:
 
     def __init__(self):
         self.server_id = uuid.uuid4().hex
-        self.data_source_topics = [SP_DATA_SOURCE_TOPIC + "/#"]
+        self.data_source_topics = list({parser.get_topic() for parser in DATA_HANDLERS})
         self.events = {}
         self.events_results = {}
         self.mqtt_client = MQTT(self.__class__.__name__ + "/" + self.server_id)
@@ -62,7 +68,6 @@ class DataServer:
         """
         if self.running:
             await self.mqtt_client.stop()
-            # todo: stop aiothpp app?
             self.running = False
 
     async def _mqtt_response_handler(
@@ -79,38 +84,19 @@ class DataServer:
         :param properties: MQTT message properties
         :return:
         """
+        payload_json = json.loads(payload.decode())
+        data = payload_json[prot.PAYLOAD_DATA_FIELD]
+        for parser in DATA_HANDLERS:
+            if not parser.can_handle(topic):
+                continue
+            data_points = parser.get_influx_points(data)
+            database = parser.get_influx_database(data)
+            time_precision = parser.get_time_precision()
+            for point in data_points:
+                asyncio.create_task(
+                    self.write_to_influx(database, point, time_precision)
+                )
 
-        # extract response_id
-        response_id = topic.replace(self.data_source_topics, "")
-        response_id = response_id.replace("/", "")
-        # store event result
-        self.events_results[response_id] = payload
-        # set event
-        self.events[response_id].set()
-
-    async def write_to_influx(self, data: Any):
-        point = {
-            "time": "2009-11-10T23:00:00Z",
-            "measurement": "cpu_load_short",
-            "tags": {"host": "server01", "region": "us-west"},
-            "fields": {"value": 0.64},
-        }
-
-        async with InfluxDBClient(db=INFLUX_SP_DATABASE) as client:
-            await client.create_database(db=INFLUX_SP_DATABASE)
-            await client.write(point)
-
-
-def check_request_body(data_json: Dict):
-    """
-    Parses POST /api/in requests body.
-
-    :param data_json: JSON dictionary containin
-    :return: JSON dictionary
-    """
-    if 2 < len(data_json):
-        raise ValueError("Invalid data JSON")
-    if REST_PAYLOAD_FIELD not in data_json:
-        raise ValueError("Invalid data JSON")
-    if len(data_json) == 2 and REST_SUBTOPICS_FIELD not in data_json:
-        raise ValueError("Invalid data JSON")
+    async def write_to_influx(self, database: str, point_data: Any, time_precicion):
+        async with InfluxDBClient(db=database) as client:
+            await client.write(point_data, precision=time_precicion)
