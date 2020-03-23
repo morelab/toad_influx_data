@@ -4,17 +4,17 @@ import json
 from typing import List
 from senml.senml import SenMLDocument, SenMLMeasurement
 
-from toad_influx_data.handlers.handler_abc import IParser, InfluxPoint
+from toad_influx_data.handlers.handler_abc import IHandler, InfluxPoint
 
 
-class SmartPlugParser(IParser):
+class SmartPlugHandler(IHandler):
     SP_DATA_SOURCE_TOPIC = "data/influx_data/sp_data"
 
     def get_topic(self) -> str:
-        return SmartPlugParser.SP_DATA_SOURCE_TOPIC + "/#"
+        return SmartPlugHandler.SP_DATA_SOURCE_TOPIC + "/#"
 
     def can_handle(self, topic: str) -> bool:
-        return True if re.match(SmartPlugParser.SP_DATA_SOURCE_TOPIC, topic) else False
+        return True if re.match(SmartPlugHandler.SP_DATA_SOURCE_TOPIC, topic) else False
 
     def get_influx_database(self, data: Any) -> str:
         return "sp"

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 InfluxPoint = Dict[str, Any]
 
 
-class IParser(ABC):
+class IHandler(ABC):
     @abstractmethod
     def get_topic(self) -> str:
         pass

@@ -7,12 +7,12 @@ from aioinflux import InfluxDBClient
 
 from toad_influx_data.utils import config
 from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
-from toad_influx_data.handlers.sp_handler import SmartPlugParser
-from toad_influx_data.handlers.handler_abc import IParser
+from toad_influx_data.handlers.sp_handler import SmartPlugHandler
+from toad_influx_data.handlers.handler_abc import IHandler
 import toad_influx_data.utils.protocol as prot
 
-DATA_HANDLERS: List[IParser] = [
-    SmartPlugParser(),
+DATA_HANDLERS: List[IHandler] = [
+    SmartPlugHandler(),
 ]
 
 
