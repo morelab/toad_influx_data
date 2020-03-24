@@ -1,3 +1,4 @@
+import strict_rfc3339
 import re
 from typing import Dict, Union, Any
 from typing import List
@@ -40,15 +41,15 @@ class SmartPlugHandler(IHandler):
         return "s"
 
     def _get_time_from_senml(
-            self, document: SenMLDocument, measurement: SenMLMeasurement
-    ) -> float:
+        self, document: SenMLDocument, measurement: SenMLMeasurement
+    ) -> str:
         time = measurement.time or document.base.time
         if not time:
             raise ValueError("No time specified")
-        return time
+        return strict_rfc3339.timestamp_to_rfc3339_utcoffset(time)
 
     def _get_measurement_from_senml(
-            self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, document: SenMLDocument, measurement: SenMLMeasurement
     ) -> str:
         name = measurement.name or document.base.name
         if not name:
@@ -59,7 +60,7 @@ class SmartPlugHandler(IHandler):
         return measurement
 
     def _get_tags_from_senml(
-            self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, document: SenMLDocument, measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int]]:
         name = measurement.name or document.base.name
         if not name:
@@ -77,6 +78,6 @@ class SmartPlugHandler(IHandler):
         return tags
 
     def _get_fields_from_senml(
-            self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, document: SenMLDocument, measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int, float]]:
         return {"value": measurement.value}

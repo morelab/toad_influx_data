@@ -63,8 +63,8 @@ class DataServer:
             await self.mqtt_client.stop()
             self.running = False
 
-    async def add_handler(self, handler: IHandler):
-        await self.mqtt_client.subscribe(handler.get_topic())
+    def add_handler(self, handler: IHandler):
+        self.mqtt_client.subscribe(handler.get_topic())
         self.handlers.append(handler)
 
     async def _mqtt_response_handler(

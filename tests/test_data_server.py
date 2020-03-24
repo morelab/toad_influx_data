@@ -1,3 +1,5 @@
+import strict_rfc3339
+import time
 import asyncio
 import re
 from typing import Any, List
@@ -9,13 +11,14 @@ from toad_influx_data.handlers.handler_abc import IHandler, InfluxPoint
 from toad_influx_data.mqtt import MQTT
 from toad_influx_data.server import DataServer
 from toad_influx_data.utils.config import MQTT_BROKER_HOST
+from toad_influx_data.utils import protocol as prot
 
 
 class TestInfluxHandler(IHandler):
-    LISTEN_TOPIC = "test-handler"
+    LISTEN_TOPIC = "test_handler"
     POINT = {
-        "time": "2000-01-01T01:00:00Z",
-        "measurement": "test-measurement",
+        "time": strict_rfc3339.now_to_rfc3339_utcoffset(),
+        "measurement": "test_measurement",
         "tags": {"tag1": "value1"},
         "fields": {"value": 0},
     }
@@ -24,7 +27,8 @@ class TestInfluxHandler(IHandler):
         return TestInfluxHandler.LISTEN_TOPIC
 
     def can_handle(self, topic: str) -> bool:
-        return True if re.match(TestInfluxHandler.LISTEN_TOPIC, topic) else False
+        can_handle = True if re.match(TestInfluxHandler.LISTEN_TOPIC, topic) else False
+        return can_handle
 
     def get_influx_database(self, data: Any) -> str:
         return TestInfluxHandler.LISTEN_TOPIC
@@ -34,33 +38,28 @@ class TestInfluxHandler(IHandler):
 
 
 @pytest.fixture
-def data_server_fixture(event_loop: asyncio.AbstractEventLoop):
+async def data_server_fixture():
     data_server = DataServer()
 
+    await data_server.start(MQTT_BROKER_HOST)
     yield data_server
-
-    event_loop.run_until_complete(data_server.stop())
+    await data_server.stop()
 
 
 @pytest.fixture
-def mqtt_client_fixture(event_loop: asyncio.AbstractEventLoop):
+async def mqtt_client_fixture():
     mqtt_client = MQTT("mqtt-test-client")
 
     async def message_handler(self, topic, payload, properties):
         pass
 
-    event_loop.run_until_complete(
-        mqtt_client.start(MQTT_BROKER_HOST, message_handler, [])
-    )
-
+    await mqtt_client.start(MQTT_BROKER_HOST, message_handler, [])
     yield mqtt_client
-
-    if mqtt_client.running:
-        event_loop.run_until_complete(mqtt_client.stop())
+    await mqtt_client.stop()
 
 
 @pytest.fixture
-def influx_database(event_loop: asyncio.AbstractEventLoop):
+async def influx_database():
     async def create_database(database):
         async with InfluxDBClient(db=database) as client:
             await client.create_database(db=database)
@@ -72,9 +71,9 @@ def influx_database(event_loop: asyncio.AbstractEventLoop):
     handler = TestInfluxHandler()
     database = handler.get_influx_database("")
 
-    event_loop.run_until_complete(create_database(database))
+    await create_database(database)
     yield
-    event_loop.run_until_complete(delete_database(database))
+    await delete_database(database)
 
 
 @pytest.mark.asyncio
@@ -87,19 +86,39 @@ async def test_start_stop_server():
     await data_server.stop()
 
 
+@pytest.mark.asyncio
 async def test_data_to_influx(
     data_server_fixture, mqtt_client_fixture, influx_database
 ):
     data_server, mqtt_client = data_server_fixture, mqtt_client_fixture
     handler = TestInfluxHandler()
-    await data_server.add_handler(handler)
+    data_server.add_handler(handler)
 
-    PUBLISHED_DATA = ""
+    DATA = ""
+    PUBLISHED_DATA = {prot.PAYLOAD_DATA_FIELD: DATA}
     mqtt_client.publish(handler.LISTEN_TOPIC, PUBLISHED_DATA)
-    await asyncio.sleep(1)
-    async with InfluxDBClient(db=handler.get_influx_database(PUBLISHED_DATA)) as client:
+
+    await asyncio.sleep(2)
+    async with InfluxDBClient(db=handler.get_influx_database(DATA)) as client:
         point = handler.get_influx_points("")[0]
         measurement = point["measurement"]
-        value = point["fields"]["value"]
-        resp = await client.query(f"SELECT value FROM {measurement}")
-        assert resp == value
+        resp = await client.query(f"SELECT * FROM {measurement}", epoch="s")
+
+        result = resp["results"][0]["series"][0]
+        expected_columns = {"time", *point["tags"].keys(), *point["fields"].keys()}
+        expected_values = {
+            point["time"],
+            *point["tags"].values(),
+            *point["fields"].values(),
+        }
+        expected_name = point["measurement"]
+        assert result["name"] == expected_name
+        result["values"][0][0] = time_to_rfc3339(
+            result["values"][0][0]
+        )  # time to RFC3339
+        assert set(result["columns"]) == expected_columns
+        assert set(result["values"][0]) == expected_values
+
+
+def time_to_rfc3339(timestamp):
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(timestamp)
