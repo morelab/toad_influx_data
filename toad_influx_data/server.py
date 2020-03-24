@@ -1,19 +1,15 @@
-import json
 import asyncio
+import json
 import uuid
-from typing import Dict, Any, List
+from typing import List, Any
 
 from aioinflux import InfluxDBClient
 
-from toad_influx_data.utils import config
-from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
-from toad_influx_data.handlers.sp_handler import SmartPlugHandler
-from toad_influx_data.handlers.handler_abc import IHandler
 import toad_influx_data.utils.protocol as prot
-
-DATA_HANDLERS: List[IHandler] = [
-    SmartPlugHandler(),
-]
+from toad_influx_data.handlers import HANDLERS
+from toad_influx_data.handlers.handler_abc import IHandler
+from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
+from toad_influx_data.utils import config
 
 
 class DataServer:
@@ -27,21 +23,21 @@ class DataServer:
     :ivar running: boolean that represents if the server is running.
     """
 
-    events: Dict[str, asyncio.Event]
-    events_results: Dict[str, bytes]
+    server_id: str
     mqtt_client: MQTT
     running: bool
+    handlers: List[IHandler]
+    listen_topics: List[str]
 
-    def __init__(self):
+    def __init__(self, handlers=None):
         self.server_id = uuid.uuid4().hex
-        self.data_source_topics = list({parser.get_topic() for parser in DATA_HANDLERS})
-        self.events = {}
-        self.events_results = {}
+        self.handlers = handlers or HANDLERS
+        self.listen_topics = list({parser.get_topic() for parser in self.handlers})
         self.mqtt_client = MQTT(self.__class__.__name__ + "/" + self.server_id)
         self.running = False
 
     async def start(
-        self, mqtt_broker=config.MQTT_BROKER_IP, mqtt_token=None,
+        self, mqtt_broker=config.MQTT_BROKER_HOST, mqtt_token=None,
     ):
         """
         Runs the server.
@@ -52,11 +48,8 @@ class DataServer:
         """
         if self.running:
             raise RuntimeError("Server already running")
-        await self.mqtt_client.run(
-            mqtt_broker,
-            self._mqtt_response_handler,
-            self.data_source_topics,
-            mqtt_token,
+        await self.mqtt_client.start(
+            mqtt_broker, self._mqtt_response_handler, self.listen_topics, mqtt_token,
         )
         self.running = True
 
@@ -69,6 +62,10 @@ class DataServer:
         if self.running:
             await self.mqtt_client.stop()
             self.running = False
+
+    async def add_handler(self, handler: IHandler):
+        await self.mqtt_client.subscribe(handler.get_topic())
+        self.handlers.append(handler)
 
     async def _mqtt_response_handler(
         self, topic: MQTTTopic, payload: bytes, properties: MQTTProperties
@@ -86,7 +83,7 @@ class DataServer:
         """
         payload_json = json.loads(payload.decode())
         data = payload_json[prot.PAYLOAD_DATA_FIELD]
-        for parser in DATA_HANDLERS:
+        for parser in self.handlers:
             if not parser.can_handle(topic):
                 continue
             data_points = parser.get_influx_points(data)
@@ -94,9 +91,9 @@ class DataServer:
             time_precision = parser.get_time_precision()
             for point in data_points:
                 asyncio.create_task(
-                    self.write_to_influx(database, point, time_precision)
+                    self._write_to_influx(database, point, time_precision)
                 )
 
-    async def write_to_influx(self, database: str, point_data: Any, time_precicion):
+    async def _write_to_influx(self, database: str, point_data: Any, time_precicion):
         async with InfluxDBClient(db=database) as client:
             await client.write(point_data, precision=time_precicion)

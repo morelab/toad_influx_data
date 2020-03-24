@@ -19,7 +19,7 @@ SERVER_IP = server_config["IP"]
 SERVER_PORT = int(server_config["PORT"])
 
 # API server's MQTT client configuration
-MQTT_BROKER_IP = mqtt_config["BROKER_IP"]
+MQTT_BROKER_HOST = mqtt_config["BROKER_IP"]
 MQTT_RESPONSE_TIMEOUT = int(mqtt_config["RESPONSE_TIMEOUT"])
 
 # Logger configuration

@@ -17,9 +17,11 @@ install:
   - pip install tox
   - pip install codecov tox
   - sudo apt-get install mosquitto
+  - sudo apt-get install influxdb
+  - sudo service influxdb start
 # command to run tests
 script:
   - tox
 # Upload coverage report to 'Codecov'
 after_script:
-  - codecov --token=  # todo: set token
+  - codecov --token=3717ca2a-9926-4391-9d2b-0c72fc598488

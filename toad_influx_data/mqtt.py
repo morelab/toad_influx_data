@@ -50,7 +50,7 @@ class MQTT(MQTTClient):
     def on_subscribe(self, client, mid, qos, properties):
         logger.log_info_verbose("SUBSCRIBED")
 
-    async def run(
+    async def start(
         self,
         broker_host: str,
         message_handler: MessageHandler,
