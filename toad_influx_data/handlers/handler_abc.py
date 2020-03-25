@@ -6,7 +6,7 @@ InfluxPoint = Dict[str, Any]
 
 class IHandler(ABC):
     @abstractmethod
-    def get_topic(self) -> str:
+    def get_topics(self) -> List[str]:
         pass
 
     @abstractmethod

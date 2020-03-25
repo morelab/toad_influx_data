@@ -1,17 +1,18 @@
-import strict_rfc3339
-import time
 import asyncio
 import re
 from typing import Any, List
 
 import pytest
+import strict_rfc3339
 from aioinflux import InfluxDBClient
 
+from tests.utils import mqtt_client_fixture, data_server_fixture
 from toad_influx_data.handlers.handler_abc import IHandler, InfluxPoint
-from toad_influx_data.mqtt import MQTT
 from toad_influx_data.server import DataServer
-from toad_influx_data.utils.config import MQTT_BROKER_HOST
 from toad_influx_data.utils import protocol as prot
+
+mqtt_client_fixture = mqtt_client_fixture
+data_server_fixture = data_server_fixture
 
 
 class TestInfluxHandler(IHandler):
@@ -23,8 +24,8 @@ class TestInfluxHandler(IHandler):
         "fields": {"value": 0},
     }
 
-    def get_topic(self) -> str:
-        return TestInfluxHandler.LISTEN_TOPIC
+    def get_topics(self) -> List[str]:
+        return [TestInfluxHandler.LISTEN_TOPIC]
 
     def can_handle(self, topic: str) -> bool:
         can_handle = True if re.match(TestInfluxHandler.LISTEN_TOPIC, topic) else False
@@ -35,27 +36,6 @@ class TestInfluxHandler(IHandler):
 
     def get_influx_points(self, data: Any) -> List[InfluxPoint]:
         return [TestInfluxHandler.POINT]
-
-
-@pytest.fixture
-async def data_server_fixture():
-    data_server = DataServer()
-
-    await data_server.start(MQTT_BROKER_HOST)
-    yield data_server
-    await data_server.stop()
-
-
-@pytest.fixture
-async def mqtt_client_fixture():
-    mqtt_client = MQTT("mqtt-test-client")
-
-    async def message_handler(self, topic, payload, properties):
-        pass
-
-    await mqtt_client.start(MQTT_BROKER_HOST, message_handler, [])
-    yield mqtt_client
-    await mqtt_client.stop()
 
 
 @pytest.fixture
@@ -98,11 +78,12 @@ async def test_data_to_influx(
     PUBLISHED_DATA = {prot.PAYLOAD_DATA_FIELD: DATA}
     mqtt_client.publish(handler.LISTEN_TOPIC, PUBLISHED_DATA)
 
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
     async with InfluxDBClient(db=handler.get_influx_database(DATA)) as client:
         point = handler.get_influx_points("")[0]
-        measurement = point["measurement"]
-        resp = await client.query(f"SELECT * FROM {measurement}", epoch="s")
+        resp = await client.query(
+            f"SELECT * FROM {point['measurement']} WHERE time='{point['time']}'"
+        )
 
         result = resp["results"][0]["series"][0]
         expected_columns = {"time", *point["tags"].keys(), *point["fields"].keys()}
@@ -113,12 +94,13 @@ async def test_data_to_influx(
         }
         expected_name = point["measurement"]
         assert result["name"] == expected_name
-        result["values"][0][0] = time_to_rfc3339(
+        result["values"][0][0] = nanos_to_rfc3339(
             result["values"][0][0]
         )  # time to RFC3339
         assert set(result["columns"]) == expected_columns
         assert set(result["values"][0]) == expected_values
 
 
-def time_to_rfc3339(timestamp):
-    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(timestamp)
+def nanos_to_rfc3339(nanos):
+    secs = nanos / 1e9
+    return strict_rfc3339.timestamp_to_rfc3339_utcoffset(secs)

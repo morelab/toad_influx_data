@@ -1,21 +1,21 @@
-import strict_rfc3339
 import re
 from typing import Dict, Union, Any
 from typing import List
 
+import strict_rfc3339
 from senml.senml import SenMLDocument, SenMLMeasurement
 
 from toad_influx_data.handlers.handler_abc import IHandler, InfluxPoint
 
 
 class SmartPlugHandler(IHandler):
-    SP_DATA_SOURCE_TOPIC = "data/influx_data/sp_data"
+    LISTEN_TOPIC = "data/influx_data/sp_data"
 
-    def get_topic(self) -> str:
-        return SmartPlugHandler.SP_DATA_SOURCE_TOPIC + "/#"
+    def get_topics(self) -> List[str]:
+        return [SmartPlugHandler.LISTEN_TOPIC, SmartPlugHandler.LISTEN_TOPIC + "/#"]
 
     def can_handle(self, topic: str) -> bool:
-        return True if re.match(SmartPlugHandler.SP_DATA_SOURCE_TOPIC, topic) else False
+        return True if re.match(SmartPlugHandler.LISTEN_TOPIC, topic) else False
 
     def get_influx_database(self, data: Any) -> str:
         return "sp"
@@ -41,17 +41,17 @@ class SmartPlugHandler(IHandler):
         return "s"
 
     def _get_time_from_senml(
-        self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> str:
-        time = measurement.time or document.base.time
+        time = senml_measurement.time or senml_document.base.time
         if not time:
             raise ValueError("No time specified")
         return strict_rfc3339.timestamp_to_rfc3339_utcoffset(time)
 
     def _get_measurement_from_senml(
-        self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> str:
-        name = measurement.name or document.base.name
+        name = self._get_name(senml_document, senml_measurement)
         if not name:
             raise ValueError("No Name specified")
         sp_id, measurement = name.split(
@@ -60,24 +60,31 @@ class SmartPlugHandler(IHandler):
         return measurement
 
     def _get_tags_from_senml(
-        self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int]]:
-        name = measurement.name or document.base.name
+        name = self._get_name(senml_document, senml_measurement)
         if not name:
             raise ValueError("No Name specified")
         sp_id, measurement = name.split(
             "/"
         )  # the name is <id>/<measurement>; e.g. w.r1.c1/power
-        unit = measurement.unit or document.base.unit
+        unit = senml_measurement.unit or senml_document.base.unit
         type = sp_id[0]
         tags = {"id": sp_id, "unit": unit, "type": type}
         if type == "w":
             type, row, column = sp_id.split(".")
-            tags["row"] = row
-            tags["column"] = column
+            tags["row"] = row[1:]
+            tags["column"] = column[1:]
         return tags
 
     def _get_fields_from_senml(
-        self, document: SenMLDocument, measurement: SenMLMeasurement
+        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int, float]]:
-        return {"value": measurement.value}
+        return {"value": senml_measurement.value}
+
+    def _get_name(
+        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+    ) -> str:
+        base_name = senml_document.base.name or ""
+        name = senml_measurement.name or ""
+        return base_name + name

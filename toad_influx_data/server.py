@@ -32,7 +32,10 @@ class DataServer:
     def __init__(self, handlers=None):
         self.server_id = uuid.uuid4().hex
         self.handlers = handlers or HANDLERS
-        self.listen_topics = list({parser.get_topic() for parser in self.handlers})
+        topics = set()
+        for parser in self.handlers:
+            topics.update(parser.get_topics())
+        self.listen_topics = list(topics)
         self.mqtt_client = MQTT(self.__class__.__name__ + "/" + self.server_id)
         self.running = False
 
@@ -64,7 +67,8 @@ class DataServer:
             self.running = False
 
     def add_handler(self, handler: IHandler):
-        self.mqtt_client.subscribe(handler.get_topic())
+        for topic in handler.get_topics():
+            self.mqtt_client.subscribe(topic)
         self.handlers.append(handler)
 
     async def _mqtt_response_handler(
@@ -88,7 +92,8 @@ class DataServer:
                 continue
             data_points = parser.get_influx_points(data)
             database = parser.get_influx_database(data)
-            time_precision = parser.get_time_precision()
+            # time_precision = parser.get_time_precision()
+            time_precision = None
             for point in data_points:
                 asyncio.create_task(
                     self._write_to_influx(database, point, time_precision)
