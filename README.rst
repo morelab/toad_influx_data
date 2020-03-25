@@ -1,8 +1,8 @@
 IoToad - toad_influx_data
 ------------------
 
-.. image:: https://travis-ci.org/morelab/toad_influx_data.svg?branch=master
-    :target: https://travis-ci.org/morelab/toad_influx_data
+.. image:: https://travis-ci.com/morelab/toad_influx_data.svg?branch=master
+    :target: https://travis-ci.com/morelab/toad_influx_data
 
 .. image:: https://codecov.io/gh/morelab/toad_influx_data/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/morelab/toad_influx_data
