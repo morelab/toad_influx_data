@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Union, Any
+from typing import Dict, Union, Any, Optional
 from typing import List
 
 import strict_rfc3339
@@ -37,7 +37,7 @@ class SmartPlugHandler(IHandler):
             influx_points.append(influx_point)
         return influx_points
 
-    def get_time_precision(self):
+    def get_time_precision(self) -> Optional[str]:
         return "s"
 
     def _get_time_from_senml(

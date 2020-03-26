@@ -82,7 +82,7 @@ async def test_sp_controller(
     mqtt_client = mqtt_client_fixture
     handler = SmartPlugHandler()
     PUBLISHED_DATA = {prot.PAYLOAD_DATA_FIELD: sp_data}
-    mqtt_client.publish(handler.LISTEN_TOPIC, PUBLISHED_DATA)
+    mqtt_client.publish(handler.get_topics()[0], PUBLISHED_DATA)
 
     await asyncio.sleep(1)
     async with InfluxDBClient(db=handler.get_influx_database(sp_data)) as client:

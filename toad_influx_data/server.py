@@ -1,7 +1,7 @@
 import asyncio
 import json
 import uuid
-from typing import List, Any
+from typing import List, Any, Optional
 
 from aioinflux import InfluxDBClient
 
@@ -16,11 +16,11 @@ class DataServer:
     """
     Runs the server and handles the requests.
 
-    :ivar events: events that are being waited. Mostly is used for MQTT responses.
-    :ivar events_results: dict where events results are stored.
+    :ivar server_id: random ID that identifies the Server.
     :ivar mqtt_client: ~`toad_influx_data.mqtt.MQTT` mqtt client.
-    :ivar app: aiohttp ~`aiohttp.web.Application` of the running server.
     :ivar running: boolean that represents if the server is running.
+    :ivar handlers: list containing all the handlers that implement ~`toad_influx_data.handlers.handler_abc.IHandler`
+    :ivar listen_topics: topics list to which the Server listens.
     """
 
     server_id: str
@@ -30,6 +30,12 @@ class DataServer:
     listen_topics: List[str]
 
     def __init__(self, handlers=None):
+        """
+        DataServer initializer
+
+        :param handlers: list of handlers that handle MQTT messages.
+        """
+
         self.server_id = uuid.uuid4().hex
         self.handlers = handlers or HANDLERS
         topics = set()
@@ -40,19 +46,19 @@ class DataServer:
         self.running = False
 
     async def start(
-        self, mqtt_broker=config.MQTT_BROKER_HOST, mqtt_token=None,
+        self, mqtt_host=config.MQTT_BROKER_HOST, mqtt_token=None,
     ):
         """
         Runs the server.
 
-        :param mqtt_broker: MQTT broker IP.
+        :param mqtt_host: MQTT broker IP.
         :param mqtt_token: MQTT credential token.
         :return:
         """
         if self.running:
             raise RuntimeError("Server already running")
         await self.mqtt_client.start(
-            mqtt_broker, self._mqtt_response_handler, self.listen_topics, mqtt_token,
+            mqtt_host, self._mqtt_response_handler, self.listen_topics, mqtt_token,
         )
         self.running = True
 
@@ -69,16 +75,16 @@ class DataServer:
     def add_handler(self, handler: IHandler):
         for topic in handler.get_topics():
             self.mqtt_client.subscribe(topic)
+            self.listen_topics.append(topic)
         self.handlers.append(handler)
 
     async def _mqtt_response_handler(
         self, topic: MQTTTopic, payload: bytes, properties: MQTTProperties
     ):
         """
-        Handles MQTT messages; it stores the message payload in.
-
-        ~`DataServer.events_results`, and it sets the Event in
-        ~`DataServer.events`
+        Handles MQTT messages; it checks what handlers can handle it.
+        Every positive handler generates points from the MQTT message,
+        and the DataServer stores the points into InfluxDB.
 
         :param topic: MQTT topic the message was received in.
         :param payload: MQTT message payload
@@ -99,6 +105,14 @@ class DataServer:
                     self._write_to_influx(database, point, time_precision)
                 )
 
-    async def _write_to_influx(self, database: str, point_data: Any, time_precicion):
+    async def _write_to_influx(self, database: str, point_data: Any, time_precision: Optional[str]):
+        """
+        Method for writing a data point to InfluxDB
+
+        :param database: InfluxDB database to which will write.
+        :param point_data: data point that will write.
+        :param time_precision: the precision that the time is formatted.
+        :return:
+        """
         async with InfluxDBClient(db=database) as client:
-            await client.write(point_data, precision=time_precicion)
+            await client.write(point_data, precision=time_precision)

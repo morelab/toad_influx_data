@@ -73,10 +73,9 @@ async def test_data_to_influx(
     data_server, mqtt_client = data_server_fixture, mqtt_client_fixture
     handler = TestInfluxHandler()
     data_server.add_handler(handler)
-
     DATA = ""
     PUBLISHED_DATA = {prot.PAYLOAD_DATA_FIELD: DATA}
-    mqtt_client.publish(handler.LISTEN_TOPIC, PUBLISHED_DATA)
+    mqtt_client.publish(handler.get_topics()[0], PUBLISHED_DATA)
 
     await asyncio.sleep(1)
     async with InfluxDBClient(db=handler.get_influx_database(DATA)) as client:

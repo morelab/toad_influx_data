@@ -61,9 +61,9 @@ class MQTT(MQTTClient):
         Runs the MQTT client.
 
         :param broker_host: MQTT broker IP
-        :param message_handler: async function for handliung incoming messages.
-        :param topics: topics to which subscribe
-        :param token: optional token credential for MQTT security
+        :param message_handler: async function for handling incoming messages.
+        :param topics: topics to which MQTT client will subscribe.
+        :param token: optional token credential for MQTT security.
         :return:
         """
         if self.running:
@@ -88,6 +88,14 @@ class MQTT(MQTTClient):
     async def _run_loop(
         self, broker_host: str, token: Optional[str], topics: List[MQTTTopic]
     ):
+        """
+        Method that starts the MQTT client and waits for it to stop.
+
+        :param broker_host: MQTT broker IP.
+        :param token: optional token credential for MQTT security
+        :param topics: topics to which MQTT client will subscribe.
+        :return:
+        """
         if token:
             self.set_auth_credentials(token, None)
         await self.connect(broker_host, version=MQTTv311)
