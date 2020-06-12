@@ -10,6 +10,7 @@ from toad_influx_data.handlers import HANDLERS
 from toad_influx_data.handlers.handler_abc import IHandler
 from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
 from toad_influx_data.utils import config
+from toad_influx_data.utils.logger import logger
 
 
 class DataServer:
@@ -61,6 +62,7 @@ class DataServer:
             mqtt_host, self._mqtt_response_handler, self.listen_topics, mqtt_token,
         )
         self.running = True
+        logger.log_info(f"toad_influx_data server running...")
 
     async def stop(self):
         """
@@ -71,6 +73,7 @@ class DataServer:
         if self.running:
             await self.mqtt_client.stop()
             self.running = False
+            logger.log_info("toad_influx_data server stopped")
 
     def add_handler(self, handler: IHandler):
         for topic in handler.get_topics():
@@ -105,7 +108,9 @@ class DataServer:
                     self._write_to_influx(database, point, time_precision)
                 )
 
-    async def _write_to_influx(self, database: str, point_data: Any, time_precision: Optional[str]):
+    async def _write_to_influx(
+        self, database: str, point_data: Any, time_precision: Optional[str]
+    ):
         """
         Method for writing a data point to InfluxDB
 
@@ -114,5 +119,7 @@ class DataServer:
         :param time_precision: the precision that the time is formatted.
         :return:
         """
+        logger.info(f"Writing to influx {database}:{point_data}...")
         async with InfluxDBClient(db=database) as client:
             await client.write(point_data, precision=time_precision)
+        logger.info(f"Written to influx {database}:{point_data}")
