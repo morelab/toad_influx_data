@@ -10,7 +10,7 @@ from toad_influx_data.handlers import HANDLERS
 from toad_influx_data.handlers.handler_abc import IHandler
 from toad_influx_data.mqtt import MQTT, MQTTTopic, MQTTProperties
 from toad_influx_data.utils import config
-from toad_influx_data.utils.logger import logger
+from toad_influx_data.utils import logger
 
 
 class DataServer:
