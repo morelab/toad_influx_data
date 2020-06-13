@@ -119,7 +119,7 @@ class DataServer:
         :param time_precision: the precision that the time is formatted.
         :return:
         """
-        logger.info(f"Writing to influx {database}:{point_data}...")
+        logger.log_info(f"Writing to influx {database}:{point_data}...")
         async with InfluxDBClient(db=database) as client:
             await client.write(point_data, precision=time_precision)
-        logger.info(f"Written to influx {database}:{point_data}")
+        logger.log_info(f"Written to influx {database}:{point_data}")
