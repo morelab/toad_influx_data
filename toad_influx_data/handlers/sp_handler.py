@@ -56,7 +56,7 @@ class SmartPlugHandler(IHandler):
             raise ValueError("No Name specified")
         sp_id, measurement = name.split(
             "/"
-        )  # the name is <id>/<measurement>; e.g. w.r1.c1/power
+        )  # the name is <id>/<measurement>; e.g. sp_w.r1.c1/power
         return measurement
 
     def _get_tags_from_senml(
@@ -67,9 +67,9 @@ class SmartPlugHandler(IHandler):
             raise ValueError("No Name specified")
         sp_id, measurement = name.split(
             "/"
-        )  # the name is <id>/<measurement>; e.g. w.r1.c1/power
+        )  # the name is <id>/<measurement>; e.g. sp_w.r1.c1/power
         unit = senml_measurement.unit or senml_document.base.unit
-        type = sp_id[0]
+        type = sp_id[3]  # sp_w.r0.c1
         tags = {"id": sp_id, "unit": unit, "type": type}
         if type == "w":
             type, row, column = sp_id.split(".")

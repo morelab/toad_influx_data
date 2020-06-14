@@ -32,33 +32,45 @@ async def influx_database():
 
 
 sp_data_1 = [
-    {"bn": "w.r1.c1/power", "bt": time.time(), "bu": "W", "v": 120.1},
+    {"bn": "sp_w.r1.c1/power", "bt": time.time(), "bu": "W", "v": 120.1},
 ]
 sp_points_1 = [
     {
         "time": strict_rfc3339.timestamp_to_rfc3339_utcoffset(sp_data_1[0]["bt"]),
         "measurement": "power",
-        "tags": {"id": "w.r1.c1", "row": "1", "column": "1", "type": "w", "unit": "W"},
+        "tags": {
+            "id": "sp_w.r1.c1",
+            "row": "1",
+            "column": "1",
+            "type": "w",
+            "unit": "W",
+        },
         "fields": {"value": 120.1},
     },
 ]
 
 sp_data_2 = [
-    {"n": "w.r1.c1/status", "t": time.time(), "bu": "W", "v": 1},
-    {"n": "m2/power", "t": time.time(), "bu": "W", "v": 120.1},
+    {"n": "sp_w.r1.c1/status", "t": time.time(), "bu": "W", "v": 1},
+    {"n": "sp_m2/power", "t": time.time(), "bu": "W", "v": 120.1},
 ]
 
 sp_points_2 = [
     {
         "time": strict_rfc3339.timestamp_to_rfc3339_utcoffset(sp_data_2[0]["t"]),
         "measurement": "status",
-        "tags": {"id": "w.r1.c1", "row": "1", "column": "1", "type": "w", "unit": "W"},
+        "tags": {
+            "id": "sp_w.r1.c1",
+            "row": "1",
+            "column": "1",
+            "type": "w",
+            "unit": "W",
+        },
         "fields": {"value": 1},
     },
     {
         "time": strict_rfc3339.timestamp_to_rfc3339_utcoffset(sp_data_2[1]["t"]),
         "measurement": "power",
-        "tags": {"id": "m2", "type": "m", "unit": "W"},
+        "tags": {"id": "sp_m2", "type": "m", "unit": "W"},
         "fields": {"value": 120.1},
     },
 ]
