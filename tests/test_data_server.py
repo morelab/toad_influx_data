@@ -31,7 +31,7 @@ class TestInfluxHandler(IHandler):
         can_handle = True if re.match(TestInfluxHandler.LISTEN_TOPIC, topic) else False
         return can_handle
 
-    def get_influx_database(self, data: Any) -> str:
+    def get_influx_database(self, topic: str) -> str:
         return TestInfluxHandler.LISTEN_TOPIC
 
     def get_influx_points(self, data: Any) -> List[InfluxPoint]:

@@ -100,7 +100,7 @@ class DataServer:
             if not parser.can_handle(topic):
                 continue
             data_points = parser.get_influx_points(data)
-            database = parser.get_influx_database(data)
+            database = parser.get_influx_database(topic)
             # time_precision = parser.get_time_precision()
             time_precision = None
             for point in data_points:

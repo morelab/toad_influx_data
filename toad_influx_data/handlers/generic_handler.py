@@ -8,20 +8,17 @@ from senml.senml import SenMLDocument, SenMLMeasurement
 from toad_influx_data.handlers.handler_abc import IHandler, InfluxPoint
 
 
-class SmartPlugHandler(IHandler):
-    LISTEN_TOPIC = "data/+/influx_data/sp"
+class GenericHandler(IHandler):
+    LISTEN_TOPIC = "data/+/influx_data"
 
     def get_topics(self) -> List[str]:
-        return [SmartPlugHandler.LISTEN_TOPIC, SmartPlugHandler.LISTEN_TOPIC + "/#"]
+        return [GenericHandler.LISTEN_TOPIC, GenericHandler.LISTEN_TOPIC + "/#"]
 
     def can_handle(self, topic: str) -> bool:
-        regex_topic = SmartPlugHandler.LISTEN_TOPIC.replace("+", "[^/]+").replace(
-            "#", ".+"
-        )
-        return True if re.match(regex_topic, topic) else False
+        return True if re.match(GenericHandler.LISTEN_TOPIC, topic) else False
 
     def get_influx_database(self, topic: str) -> str:
-        return "sp"
+        return topic.split("/")[3]
 
     def get_influx_points(self, senml_data_points: Any) -> List[InfluxPoint]:
         influx_points = []

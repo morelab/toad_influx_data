@@ -29,11 +29,11 @@ class IHandler(ABC):
         pass
 
     @abstractmethod
-    def get_influx_database(self, data: Any) -> str:
+    def get_influx_database(self, topic: str) -> str:
         """
 
         :param data: MQTT message data.
-        :return: the database to which the points will be writen to.
+        :return: InfluxDB database to which the points will be writen to.
         """
         pass
 
