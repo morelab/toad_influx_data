@@ -49,7 +49,7 @@ class SmartPlugHandler(IHandler):
         time = senml_measurement.time or senml_document.base.time
         if not time:
             raise ValueError("No time specified")
-        return strict_rfc3339.timestamp_to_rfc3339_utcoffset(time)
+        return strict_rfc3339.timestamp_to_rfc3339_localoffset(time)
 
     def _get_measurement_from_senml(
         self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
