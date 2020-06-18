@@ -13,4 +13,4 @@ VOLUME ./config
 
 CMD ["./run.sh"]
 
-# docker run --network=iotoad_network -v $(pwd)/config:/app/config --name toad_influx_data
+# docker run --network=iotoad_network -v $(pwd)/config:/app/config toad_influx_data
