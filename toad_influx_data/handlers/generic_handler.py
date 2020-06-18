@@ -15,7 +15,10 @@ class GenericHandler(IHandler):
         return [GenericHandler.LISTEN_TOPIC, GenericHandler.LISTEN_TOPIC + "/#"]
 
     def can_handle(self, topic: str) -> bool:
-        return True if re.match(GenericHandler.LISTEN_TOPIC, topic) else False
+        regex_topic = GenericHandler.LISTEN_TOPIC.replace("+", "[^/]+").replace(
+            "#", ".+"
+        )
+        return True if re.match(regex_topic, topic) else False
 
     def get_influx_database(self, topic: str) -> str:
         return topic.split("/")[3]

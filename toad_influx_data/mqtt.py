@@ -21,6 +21,7 @@ class MQTT(MQTTClient):
     :ivar message_handler: async function that handles MQTT messages
     :ivar running: boolean that represents if the server is running.
     """
+
     message_handler: MessageHandler
     running: bool
     topics: List[MQTTTopic]
