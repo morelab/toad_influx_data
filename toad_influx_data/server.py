@@ -120,6 +120,8 @@ class DataServer:
         :return:
         """
         logger.log_info(f"Writing to influx {database}:{point_data}...")
-        async with InfluxDBClient(db=database) as client:
+        async with InfluxDBClient(
+            db=database, host=config.INFLUXDB_HOST, port=config.INFLUXDB_PORT
+        ) as client:
             await client.write(point_data, precision=time_precision)
         logger.log_info(f"Written to influx {database}:{point_data}")
