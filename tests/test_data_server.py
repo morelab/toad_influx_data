@@ -34,7 +34,7 @@ class TestInfluxHandler(IHandler):
     def get_influx_database(self, topic: str) -> str:
         return TestInfluxHandler.LISTEN_TOPIC
 
-    def get_influx_points(self, data: Any) -> List[InfluxPoint]:
+    def get_influx_power_points(self, data: Any) -> List[InfluxPoint]:
         return [TestInfluxHandler.POINT]
 
 
@@ -79,7 +79,7 @@ async def test_data_to_influx(
 
     await asyncio.sleep(1)
     async with InfluxDBClient(db=handler.get_influx_database(DATA)) as client:
-        point = handler.get_influx_points("")[0]
+        point = handler.get_influx_power_points("")[0]
         resp = await client.query(
             f"SELECT * FROM {point['measurement']} WHERE time='{point['time']}'"
         )

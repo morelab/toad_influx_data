@@ -23,9 +23,7 @@ class GenericHandler(IHandler):
     def get_influx_database(self, topic: str) -> str:
         return topic.split("/")[3]
 
-    def get_influx_points(self, senml_data_points: Any) -> List[InfluxPoint]:
-        influx_points = []
-        senml_document = SenMLDocument.from_json(senml_data_points)
+    def get_influx_points(self, influx_points, senml_document):
         for senml_measurement in senml_document.measurements:
             influx_point = {
                 "time": self._get_time_from_senml(senml_document, senml_measurement),
@@ -40,11 +38,21 @@ class GenericHandler(IHandler):
             influx_points.append(influx_point)
         return influx_points
 
+    def get_influx_power_points(self, senml_data_points: Any) -> List[InfluxPoint]:
+        influx_points = []
+        senml_power_document = SenMLDocument.from_json([senml_data_points[0]])
+        return self.get_influx_points(influx_points, senml_power_document)
+
+    def get_influx_status_points(self, senml_data_points: Any) -> List[InfluxPoint]:
+        influx_points = []
+        senml_status_document = SenMLDocument.from_json([senml_data_points[1]])
+        return self.get_influx_points(influx_points, senml_status_document)
+
     def get_time_precision(self) -> Optional[str]:
         return "s"
 
     def _get_time_from_senml(
-        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+            self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> str:
         time = senml_measurement.time or senml_document.base.time
         if not time:
@@ -52,7 +60,7 @@ class GenericHandler(IHandler):
         return strict_rfc3339.timestamp_to_rfc3339_utcoffset(time)
 
     def _get_measurement_from_senml(
-        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+            self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> str:
         name = self._get_name(senml_document, senml_measurement)
         if not name:
@@ -63,7 +71,7 @@ class GenericHandler(IHandler):
         return measurement
 
     def _get_tags_from_senml(
-        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+            self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int]]:
         name = self._get_name(senml_document, senml_measurement)
         if not name:
@@ -81,12 +89,12 @@ class GenericHandler(IHandler):
         return tags
 
     def _get_fields_from_senml(
-        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+            self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> Dict[str, Union[str, int, float]]:
         return {"value": senml_measurement.value}
 
     def _get_name(
-        self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
+            self, senml_document: SenMLDocument, senml_measurement: SenMLMeasurement
     ) -> str:
         base_name = senml_document.base.name or ""
         name = senml_measurement.name or ""

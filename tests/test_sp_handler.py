@@ -81,7 +81,7 @@ sp_data_points = [(sp_data_1, sp_points_1), (sp_data_2, sp_points_2)]
 def test_sp_hanlder():
     handler = SmartPlugHandler()
     for data, expected_points in sp_data_points:
-        points = handler.get_influx_points(data)
+        points = handler.get_influx_power_points(data)
         for expected_point, point in zip(expected_points, points):
             assert expected_point == point
 
@@ -99,7 +99,7 @@ async def test_sp_controller(
 
     await asyncio.sleep(1)
     async with InfluxDBClient(db=handler.get_influx_database(topic)) as client:
-        for point in handler.get_influx_points(sp_data):
+        for point in handler.get_influx_power_points(sp_data):
             resp = await client.query(
                 f"SELECT * FROM {point['measurement']} WHERE time='{point['time']}'"
             )

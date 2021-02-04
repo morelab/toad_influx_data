@@ -47,7 +47,7 @@ class DataServer:
         self.running = False
 
     async def start(
-        self, mqtt_host=config.MQTT_BROKER_HOST, mqtt_token=None,
+            self, mqtt_host=config.MQTT_BROKER_HOST, mqtt_token=None,
     ):
         """
         Runs the server.
@@ -82,7 +82,7 @@ class DataServer:
         self.handlers.append(handler)
 
     async def _mqtt_response_handler(
-        self, topic: MQTTTopic, payload: bytes, properties: MQTTProperties
+            self, topic: MQTTTopic, payload: bytes, properties: MQTTProperties
     ):
         """
         Handles MQTT messages; it checks what handlers can handle it.
@@ -99,17 +99,22 @@ class DataServer:
         for parser in self.handlers:
             if not parser.can_handle(topic):
                 continue
-            data_points = parser.get_influx_points(data)
+            power_data_points = parser.get_influx_power_points(data)
+            status_data_points = parser.get_influx_status_points(data)
             database = parser.get_influx_database(topic)
             # time_precision = parser.get_time_precision()
             time_precision = None
-            for point in data_points:
+            for point in power_data_points:
+                asyncio.create_task(
+                    self._write_to_influx(database, point, time_precision)
+                )
+            for point in status_data_points:
                 asyncio.create_task(
                     self._write_to_influx(database, point, time_precision)
                 )
 
     async def _write_to_influx(
-        self, database: str, point_data: Any, time_precision: Optional[str]
+            self, database: str, point_data: Any, time_precision: Optional[str]
     ):
         """
         Method for writing a data point to InfluxDB
@@ -121,7 +126,7 @@ class DataServer:
         """
         logger.log_info(f"Writing to influx {database}:{point_data}...")
         async with InfluxDBClient(
-            db=database, host=config.INFLUXDB_HOST, port=config.INFLUXDB_PORT
+                db=database, host=config.INFLUXDB_HOST, port=config.INFLUXDB_PORT
         ) as client:
             await client.write(point_data, precision=time_precision)
         logger.log_info(f"Written to influx {database}:{point_data}")

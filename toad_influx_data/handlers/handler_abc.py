@@ -32,13 +32,13 @@ class IHandler(ABC):
     def get_influx_database(self, topic: str) -> str:
         """
 
-        :param data: MQTT message data.
+        :param topic: InfluxDB database topic.
         :return: InfluxDB database to which the points will be writen to.
         """
         pass
 
     @abstractmethod
-    def get_influx_points(self, data: Any) -> List[InfluxPoint]:
+    def get_influx_power_points(self, data: Any) -> List[InfluxPoint]:
         """
 
         :param data: MQTT message data.
@@ -52,3 +52,12 @@ class IHandler(ABC):
         :return: time precision
         """
         return None
+
+    @abstractmethod
+    def get_influx_status_points(self, data: Any) -> List[InfluxPoint]:
+        """
+
+        :param data: MQTT message data.
+        :return: list of InfluxDB data points that are generated from the MQTT message data.
+        """
+        pass
